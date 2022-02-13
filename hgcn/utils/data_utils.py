@@ -157,6 +157,8 @@ def load_data_nc(dataset, use_feats, data_path, split_seed):
         adj, features, labels, idx_train, idx_val, idx_test, node_labels = load_twitter_data(
             dataset, use_feats, data_path
         )
+    elif dataset == 'disease':
+        adj, features, labels, idx_train, idx_val, idx_test, node_labels = load_disease_data(dataset, data_path)
     else:
         if dataset == 'disease_nc':
             adj, features, labels = load_synthetic_data(dataset, use_feats, data_path)
@@ -164,6 +166,7 @@ def load_data_nc(dataset, use_feats, data_path, split_seed):
         elif dataset == 'airport':
             adj, features, labels = load_data_airport(dataset, data_path, return_label=True)
             val_prop, test_prop = 0.15, 0.15
+        
         else:
             raise FileNotFoundError('Dataset {} is not supported.'.format(dataset))
         idx_val, idx_test, idx_train = split_data(labels, val_prop, test_prop, seed=split_seed)
@@ -205,6 +208,23 @@ def load_citation_data(dataset_str, use_feats, data_path, split_seed=None):
     if not use_feats:
         features = sp.eye(adj.shape[0])
     return adj, features, labels, idx_train, idx_val, idx_test
+
+def load_disease_data(dataset_str, data_path):
+    filepath = os.path.join(data_path, "disease_digraph_dgl.pkl")
+    with open(filepath,"rb") as f:
+        dataset = pkl.load(f)
+    
+    idx_train = np.where(dataset[0].ndata['train_mask'].numpy() == 1)[0]
+    idx_val = np.where(dataset[0].ndata['val_mask'].numpy() == 1)[0]
+    idx_test = np.where(dataset[0].ndata['test_mask'].numpy() == 1)[0]
+    
+    adj_m = dataset[0].adj(scipy_fmt='csr')
+    nl = dataset[0].nodes()
+    features = sp.csr_matrix(dataset[0].ndata['x'].numpy())
+    labels = dataset[0].ndata['y'].numpy()
+    return adj_m, features, labels, idx_train, idx_val, idx_test, nl.numpy()
+
+
 
 
 def parse_index_file(filename):
